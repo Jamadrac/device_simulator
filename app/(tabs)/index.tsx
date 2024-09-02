@@ -12,6 +12,7 @@ const GPSDevice: React.FC<GPSDeviceProps> = () => {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [updating, setUpdating] = useState<boolean>(false); // New state for controlling location updates
 
   useEffect(() => {
     (async () => {
@@ -27,17 +28,21 @@ const GPSDevice: React.FC<GPSDeviceProps> = () => {
   }, []);
 
   const handleUpdateLocation = async () => {
-    if (!baseUrl) {
-      setErrorMessage('Base URL is not set');
-      return;
+    if (updating) {
+      return; // Exit if already updating
     }
 
+    // Use default URL if baseUrl is not provided
+    const finalBaseUrl = baseUrl || 'footclan.onrender.com';
+
+    setUpdating(true); // Set updating state to true
     setLoading(true); // Show loading indicator
+
     try {
       let location = await Location.getCurrentPositionAsync({});
       setLocation(location);
       
-      await sendLocationToBackend(baseUrl, serialNumber, location.coords.latitude, location.coords.longitude);
+      await sendLocationToBackend(finalBaseUrl, serialNumber, location.coords.latitude, location.coords.longitude);
     } catch (error) {
       console.error(error);
       setErrorMessage('Error updating location');
@@ -49,13 +54,18 @@ const GPSDevice: React.FC<GPSDeviceProps> = () => {
       });
     } finally {
       setLoading(false); // Hide loading indicator
+      setUpdating(false); // Set updating state to false
     }
   };
 
+  const handleStopUpdating = () => {
+    setUpdating(false); // Stop updating by setting the state to false
+    setLoading(false); // Hide loading indicator
+  };
 
   const sendLocationToBackend = async (baseUrl: string, serialNumber: string, latitude: number, longitude: number) => {
     try {
-      const response = await axios.patch(`http://${baseUrl}/api/update-location`, {
+      const response = await axios.patch(`https://${baseUrl}/api/update-location`, {
         serialNumber,
         latitude,
         longitude,
@@ -79,10 +89,6 @@ const GPSDevice: React.FC<GPSDeviceProps> = () => {
       });
     }
   };
-  
-
-
-
 
   return (
     <View style={styles.container}>
@@ -114,6 +120,7 @@ const GPSDevice: React.FC<GPSDeviceProps> = () => {
       )}
       {errorMessage && <Text style={styles.error}>{errorMessage}</Text>}
       <Button title="Update Location" onPress={handleUpdateLocation} />
+      <Button title="Stop" onPress={handleStopUpdating} color="red" />
       {loading && <ActivityIndicator size="large" color="#0000ff" style={styles.loading} />}
       <Toast />
     </View>
