@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, Text, Button } from "react-native";
 import * as Location from "expo-location";
 import { io, Socket } from "socket.io-client";
-import { baseUrl } from "./url";
+import { baseUrl } from "@/components/url";
 
 interface LocationData {
   coords: {
